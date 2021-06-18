@@ -12,8 +12,6 @@ source venv/bin/activate
 python -m pip install -U pip
 python -m pip install -r requirements.txt 
 python -m spacy download en_core_web_sm
-
-echo "{}" > arxiv.json
 ```
 
 
@@ -25,6 +23,10 @@ python arxiv.py cmd-query --min-date=2021-01-01 "knowledge graph"
 
 ```
 python arxiv.py cmd-extract
+```
+
+```
+python arxiv.py cmd-analyze --csv-file trends.csv
 ```
 
 
