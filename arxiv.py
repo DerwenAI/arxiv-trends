@@ -9,8 +9,10 @@ arxiv-trends
 from collections import defaultdict
 import itertools
 import pathlib
+import re
 import sys
 import typing
+import unicodedata
 import urllib
 import urllib.parse
 import urllib.request
@@ -30,6 +32,56 @@ import typer
 
 APP = typer.Typer()
 
+
+######################################################################
+## utility functions
+## https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string
+
+def strip_accents (
+    text: str,
+    ) -> str:
+    """
+Strip accents from the input string.
+
+    text:
+the input string
+
+    returns:
+the processed string
+    """
+    try:
+        text = unicode(text, "utf-8")
+    except (TypeError, NameError): # unicode is a default on python 3 
+        pass
+
+    text = unicodedata.normalize("NFD", text)
+    text = text.encode("ascii", "ignore")
+    text = text.decode("utf-8")
+
+    return str(text)
+
+
+def text_to_id (
+    text: str,
+    ) -> str:
+    """
+Convert input text to an identifier, suitable for a URI
+
+    text:
+the input string
+
+    returns:
+the processed string
+    """
+    text = strip_accents(text.lower())
+    text = re.sub("[ ]+", "_", text)
+    text = re.sub("[^0-9a-zA-Z_-]", "", text)
+
+    return text
+
+
+######################################################################
+## class defintions
 
 class Trends:
     """
@@ -114,7 +166,7 @@ already exist.
     returns:
 author node
         """
-        uri = self.kg.get_ns("derw") + "author_" + name.replace(" ", "_").lower()
+        uri = self.kg.get_ns("derw") + "author_" + text_to_id(name)
         node = rdflib.URIRef(uri)
         p = self.kg.get_ns("rdf").type
         o = self.kg.get_ns("derw").Author
@@ -242,8 +294,10 @@ results (Atom feed), then update the KG to represent any new entries.
 
 @APP.command()
 def cmd_query (
-    query,
-    min_date = "2021-06-15",
+    query: str,
+    *,
+    min_date: str = "2021-06-15",
+    max_items: int = 5000,
     ):
     """
 Query the arXiv API for the given search.
@@ -251,7 +305,6 @@ Query the arXiv API for the given search.
     trends = Trends()
 
     # search parameters
-    max_items = 1000
     page_items = 100
 
     # get metadata for the matching articles
@@ -273,7 +326,7 @@ Query the arXiv API for the given search.
 
 @APP.command()
 def cmd_extract (
-    max_phrase = 10,
+    max_phrase: int = 10,
     ):
     """
 Extract the entities fron each article.

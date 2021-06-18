@@ -12,6 +12,7 @@ source venv/bin/activate
 python -m pip install -U pip
 python -m pip install -r requirements.txt 
 python -m spacy download en_core_web_sm
+cp base.ttl arxiv.ttl
 ```
 
 
@@ -26,7 +27,7 @@ python arxiv.py cmd-extract
 ```
 
 ```
-python arxiv.py cmd-analyze --csv-file trends.csv
+python arxiv.py cmd-analyze
 ```
 
 
@@ -39,4 +40,8 @@ which is succinct and simplifies use in commercial applications.
 
 ## Kudos
 
-Thank you to arXiv for use of its open access interoperability.
+Kudos to arXiv for use of its open access interoperability;
+to Jürgen Müller for the original idea;
+plus general support from [Derwen, Inc.](https://derwen.ai/);
+the [Knowledge Graph Conference](https://www.knowledgegraph.tech/)
+and [Connected Data World](https://connected-data.world/).
