@@ -28,7 +28,7 @@ python arxiv.py cmd-extract
 ```
 
 
-## License
+## License and Copyright
 
 Source code for **arxiv-trends** plus its logo, documentation, and
 examples have an [MIT license](https://spdx.org/licenses/MIT.html)

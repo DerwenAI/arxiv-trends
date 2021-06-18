@@ -1,4 +1,8 @@
 icecream >= 2.1
+matplotlib >= 3.4
+numpy >= 1.20
+pandas >= 1.2
 pytextrank >= 3.1
+python-dateutil >= 2.8
 spacy >= 3.0
 typer >= 0.3.2
