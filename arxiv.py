@@ -35,13 +35,14 @@ APP = typer.Typer()
 
 ######################################################################
 ## utility functions
-## https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string
 
 def strip_accents (
     text: str,
     ) -> str:
     """
 Strip accents from the input string.
+
+See <https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string>
 
     text:
 the input string
@@ -51,7 +52,7 @@ the processed string
     """
     try:
         text = unicode(text, "utf-8")
-    except (TypeError, NameError): # unicode is a default on python 3 
+    except (TypeError, NameError): # unicode is a default on Python 3.x
         pass
 
     text = unicodedata.normalize("NFD", text)
@@ -113,6 +114,7 @@ Analyze trends among papers published on arXiv.
 
     def __init__ (
         self,
+        *,
         kg_path: str = "arxiv.ttl",
         ):
         """
@@ -296,13 +298,14 @@ results (Atom feed), then update the KG to represent any new entries.
 def cmd_query (
     query: str,
     *,
+    kg_path: str = "arxiv.ttl",
     min_date: str = "2021-06-15",
     max_items: int = 5000,
     ):
     """
 Query the arXiv API for the given search.
     """
-    trends = Trends()
+    trends = Trends(kg_path=kg_path)
 
     # search parameters
     page_items = 100
@@ -326,12 +329,13 @@ Query the arXiv API for the given search.
 
 @APP.command()
 def cmd_extract (
+    kg_path: str = "arxiv.ttl",
     max_phrase: int = 10,
     ):
     """
 Extract the entities fron each article.
     """
-    trends = Trends()
+    trends = Trends(kg_path=kg_path)
 
     # prepare the NLP pipeline
     nlp = spacy.load("en_core_web_sm")
@@ -358,12 +362,13 @@ WHERE {
 
 @APP.command()
 def cmd_analyze (
+    kg_path: str = "arxiv.ttl",
     csv_file: str = "arxiv.csv",
     ):
     """
 Analyze the article trends.
     """
-    trends = Trends()
+    trends = Trends(kg_path=kg_path)
 
     sparql = """
 SELECT ?article ?date ?label
@@ -374,7 +379,6 @@ WHERE {
  ?topic skos:prefLabel ?label
 }
     """
-
     # run the pipeline for each article
     df = pd.DataFrame([
         {
