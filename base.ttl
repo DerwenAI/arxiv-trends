@@ -1,0 +1,51 @@
+@prefix bibo: <http://purl.org/ontology/bibo/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix derw: <https://derwen.ai/ns/v1#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lcsh: <http://id.loc.gov/authorities/subjects/> .
+@prefix madsrdf: <http://www.loc.gov/mads/rdf/v1#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix wd: <http://www.wikidata.org/entity/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+
+derw:topic_Graph_Algorithms a derw:Topic ;
+    skos:broader <https://derwen.ai/d/computer_science> ;
+    skos:closeMatch lcsh:sh2002004605,
+        <https://networkx.org/documentation/stable/reference/algorithms/index.html> ;
+    skos:definition "A family of algorithms that operate on graphs for network analysis, measurement, ranking, partitioning, and other methods that leverage graph theory."@en ;
+    skos:prefLabel "graph algorithms"@en .
+
+derw:topic_Graph_Database a derw:Topic ;
+    skos:broader <https://derwen.ai/d/computer_science> ;
+    skos:prefLabel "graph database"@en .
+
+derw:topic_Graph_Embedding a derw:Topic ;
+    skos:broader <https://derwen.ai/d/deep_learning> ;
+    skos:prefLabel "graph embedding"@en .
+
+derw:topic_Graph_Neural_Networks a derw:Topic ;
+    skos:broader <https://derwen.ai/d/deep_learning> ;
+    skos:prefLabel "graph neural networks"@en .
+
+derw:topic_Knowledge_Graph a derw:Topic ;
+    skos:altLabel "KG"@en ;
+    skos:broader <https://derwen.ai/d/artificial_intelligence> ;
+    skos:closeMatch wd:Q33002955,
+        <https://www.poolparty.biz/what-is-a-knowledge-graph/> ;
+    skos:definition "A knowledge base that uses a graph-structured data model, representing and annotating interlinked descriptions of entities, with an overlay of semantic metadata."@en ;
+    skos:prefLabel "knowledge graph"@en .
+
+derw:Topic a skos:Concept ,
+        madsrdf:Topic ,
+        madsrdf:Authority ;
+    skos:prefLabel "Topic"@en ;
+    dct:identifier wd:Q1969448 ;
+    skos:definition "Subject heading used for classifying content and navigating discovery within it."@en .
+
+derw:Author a skos:Concept,
+        foaf:Agent ;
+    dct:identifier wd:Q482980 ;
+    skos:definition "An author of a publication."@en ;
+    skos:prefLabel "Author"@en ;
+    skos:topConceptOf derw:Derwen_Vocabulary .
