@@ -23,11 +23,12 @@ python arxiv.py cmd-query --min-date=2021-01-01 "knowledge graph"
 ```
 
 ```
-python arxiv.py cmd-extract
+python arxiv.py cmd-analyze
+python arxiv.py cmd-visualize
 ```
 
 ```
-python arxiv.py cmd-analyze
+python arxiv.py cmd-extract
 ```
 
 
@@ -41,7 +42,7 @@ which is succinct and simplifies use in commercial applications.
 ## Kudos
 
 Kudos to arXiv for use of its open access interoperability;
-to Jürgen Müller for the original idea;
+to Jürgen Müller @ BASF for the original idea;
 plus general support from [Derwen, Inc.](https://derwen.ai/);
 the [Knowledge Graph Conference](https://www.knowledgegraph.tech/)
 and [Connected Data World](https://connected-data.world/).

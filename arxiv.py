@@ -390,6 +390,52 @@ WHERE {
     df.to_csv(path)
 
 
+@APP.command()
+def cmd_visualize (
+    csv_file: str = "arxiv.csv",
+    png_file: str = "arxiv.png",
+    ):
+    """
+Visualize the article trends.
+    """
+    df = pd.read_csv(csv_file, parse_dates=True, index_col="date")
+    df_list = []
+
+    for query in sorted(set(df["topic"])):
+        df_sub = df[df["topic"] == query]
+        df_samp = df_sub.resample("M").sum()
+        df_list.append(df_samp.rename(columns={ "counts": query }))
+
+    df_full = pd.concat(df_list, axis=1, join="inner").reindex(df_samp.index).fillna(0)
+
+    # delete the min value as an outlier
+    df_full = df_full.iloc[1: , :]
+
+    # drop the last row – to let arXiv settle
+    df_full.drop(df_full.tail(1).index, inplace=True)
+
+    # set up the plot
+    plot = df_full.plot(
+        subplots=True,
+        legend=False,
+        figsize=(11, 7),
+        xlabel="date submitted"
+    )
+
+    plot[0].set(ylabel="monthly counts")
+
+    summary = list(df.groupby("topic").sum().to_dict()["counts"].items())
+    y_max = round(max(df_full.max(axis=1)) + 10.0)
+
+    for index, ax in enumerate(plot):
+        query, count = summary[index]
+        ax.set(ylim=(0, y_max), title=f"{query}, total = {count}")
+
+    fig = plot[0].get_figure()
+    fig.tight_layout()
+    fig.savefig(png_file)
+
+
 if __name__ == "__main__":
     APP()
 
