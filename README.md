@@ -5,30 +5,30 @@ Analyze trends among articles published on [arXiv](https://arxiv.org/help/api)
 
 ## Install
 
-```
-python -m venv venv
+```bash
+python3 -m venv venv
 source venv/bin/activate
 
-python -m pip install -U pip
-python -m pip install -r requirements.txt 
-python -m spacy download en_core_web_sm
+python3 -m pip install -U pip
+python3 -m pip install -r requirements.txt 
+python3 -m spacy download en_core_web_sm
 cp base.ttl arxiv.ttl
 ```
 
 
 ## Usage
 
-```
-python arxiv.py cmd-query --min-date=2021-01-01 "knowledge graph"
-```
-
-```
-python arxiv.py cmd-analyze
-python arxiv.py cmd-visualize
+```bash
+python3 arxiv.py cmd-query --min-date=2021-01-01 "knowledge graph"
 ```
 
+```bash
+python3 arxiv.py cmd-analyze
+python3 arxiv.py cmd-visualize
 ```
-python arxiv.py cmd-extract
+
+```bash
+python3 arxiv.py cmd-extract
 ```
 
 

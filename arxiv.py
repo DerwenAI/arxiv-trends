@@ -3,7 +3,9 @@
 # see license https://github.com/DerwenAI/arxiv-trends#license-and-copyright
 
 """
-arxiv-trends
+arxiv-trends:
+
+Analyze trends in articles published on *arXiv* using NLP, knowledge graph, and time-series.
 """
 
 from collections import defaultdict
@@ -18,16 +20,18 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as et
 
-from icecream import ic
+from icecream import ic  # type: ignore  # pylint: disable=E0401
+from tqdm import tqdm
 import dateutil.tz
-import kglab
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import pytextrank
-import rdflib
+import matplotlib.pyplot as plt  # type: ignore  # pylint: disable=E0401
+import pandas as pd  # type: ignore  # pylint: disable=E0401
+import rdflib  # type: ignore  # pylint: disable=E0401
 import spacy
 import typer
+
+import pytextrank  # type: ignore  # pylint: disable=E0401
+import kglab  # type: ignore  # pylint: disable=E0401
 
 
 APP = typer.Typer()
@@ -50,14 +54,9 @@ the input string
     returns:
 the processed string
     """
-    try:
-        text = unicode(text, "utf-8")
-    except (TypeError, NameError): # unicode is a default on Python 3.x
-        pass
-
     text = unicodedata.normalize("NFD", text)
-    text = text.encode("ascii", "ignore")
-    text = text.decode("utf-8")
+    text = text.encode("ascii", "ignore")  # type: ignore
+    text = text.decode("utf-8")  # type: ignore
 
     return str(text)
 
@@ -69,10 +68,10 @@ def text_to_id (
 Convert input text to an identifier, suitable for a URI
 
     text:
-the input string
+raw text for the label of a node in the graph
 
     returns:
-the processed string
+a string usable as a unique symbol in RDF
     """
     text = strip_accents(text.lower())
     text = re.sub("[ ]+", "_", text)
@@ -82,7 +81,7 @@ the processed string
 
 
 ######################################################################
-## class defintions
+## class definitions
 
 class Trends:
     """
@@ -119,6 +118,9 @@ Analyze trends among papers published on arXiv.
         ):
         """
 Constructor.
+
+    kg_path:
+optional - path to the TTL file for kglab to load/save
         """
         self.kg = kglab.KnowledgeGraph(namespaces=self.NS)
         self.kg_path = pathlib.Path(kg_path)
@@ -165,6 +167,9 @@ Serialize the updated KG to a file.
 Lookup an author by name, creating a node in the KG if it doesn't
 already exist.
 
+    name:
+raw text for the name of the author
+
     returns:
 author node
         """
@@ -183,17 +188,20 @@ author node
     def parse_entry (
         self,
         entry: et.Element,
-        ):
+        ) -> typing.Tuple[rdflib.URIRef, str]:
         """
 Parse the XML from one entry in an Atom feed, and add it to the KG.
 
+    entry:
+XML object for one Atom feed entry
+
     returns:
-href and date of the parsed results
+node and date of the parsed results
         """
-        href = entry.find("atom:link[@title='pdf']", self.NS).attrib["href"]
-        date = entry.find("atom:published", self.NS).text[:10]
-        title = entry.find("atom:title", self.NS).text
-        abstract = entry.find("atom:summary", self.NS).text.replace("\n", " ").strip()
+        href = entry.find("atom:link[@title='pdf']", self.NS).attrib["href"]  # type: ignore
+        date = entry.find("atom:published", self.NS).text[:10]  # type: ignore
+        title = entry.find("atom:title", self.NS).text  # type: ignore
+        abstract = entry.find("atom:summary", self.NS).text.replace("\n", " ").strip()  # type: ignore
 
         # lookup the specified article in the KG, and create a node if
         # it doesn't already exist
@@ -209,7 +217,7 @@ href and date of the parsed results
 
             # add author list
             for author in entry.findall("atom:author/atom:name", self.NS):
-                self.kg.add(node, self.kg.get_ns("bibo").authorList, self.lookup_author(author.text))
+                self.kg.add(node, self.kg.get_ns("bibo").authorList, self.lookup_author(author.text))  # type: ignore
 
         return node, date
 
@@ -224,6 +232,15 @@ href and date of the parsed results
         """
 Format a URL to search arXiv via its API, based on the given search 
 criteria.
+
+    query:
+query string
+
+    start:
+start index within the results
+
+    max_results:
+maximum results to return per API call
 
     returns:
 query URL
@@ -251,6 +268,18 @@ query URL
 Access the arXiv API based on the given search criteria, parse the XML
 results (Atom feed), then update the KG to represent any new entries.
 
+    query:
+query string
+
+    min_date:
+minimum date to include in the results
+
+    max_items:
+optional - maximum items requested per API call
+
+    page_items:
+optional - maximum items requested per page
+
     yields:
 `(date, href)` tuple for each search hit within the criteria
         """
@@ -267,9 +296,9 @@ results (Atom feed), then update the KG to represent any new entries.
 
             # track the API results paging
             root = et.fromstring(xml)
-            total_results = int(root.findall("opensearch:totalResults", self.NS)[0].text)
-            start_index = int(root.findall("opensearch:startIndex", self.NS)[0].text)
-            page_items = int(root.findall("opensearch:itemsPerPage", self.NS)[0].text)
+            total_results = int(root.findall("opensearch:totalResults", self.NS)[0].text)  # type: ignore
+            start_index = int(root.findall("opensearch:startIndex", self.NS)[0].text)  # type: ignore
+            page_items = int(root.findall("opensearch:itemsPerPage", self.NS)[0].text)  # type: ignore
 
             print("---")
             ic(total_results)
@@ -277,7 +306,7 @@ results (Atom feed), then update the KG to represent any new entries.
             ic(page_items)
 
             # parse each entry
-            for entry in root.findall("atom:entry", self.NS):
+            for entry in tqdm(root.findall("atom:entry", self.NS), desc="Atom entry"):
                 node, date = self.parse_entry(entry)
                 yield date, node
 
@@ -301,9 +330,18 @@ def cmd_query (
     kg_path: str = "arxiv.ttl",
     min_date: str = "2021-06-15",
     max_items: int = 5000,
-    ):
+    ) -> None:
     """
-Query the arXiv API for the given search.
+Query the arXiv API for the given search, then update the KG.
+
+    kg_path:
+optional - path to the TTL file for kglab to load/save
+
+    min_date:
+optional - minimum date to include in the results
+
+    max_items:
+optional - maximum items requested per API call
     """
     trends = Trends(kg_path=kg_path)
 
@@ -318,10 +356,10 @@ Query the arXiv API for the given search.
         page_items=page_items,
     )
 
-    for date, node in hit_iter:
+    for date, node in tqdm(hit_iter, desc="Hits"):
         trends.kg.add(node, trends.kg.get_ns("derw").fromQuery, trends.topics[query])
         # TODO: what if query new?
-        print(query, date, node)
+        #print(query, date, node)
 
     # persist the metadata
     trends.save_kg()
@@ -330,10 +368,24 @@ Query the arXiv API for the given search.
 @APP.command()
 def cmd_extract (
     kg_path: str = "arxiv.ttl",
+    min_date: str = "2021-06-15",
+    kpa_file: str = "phrases.csv",
     max_phrase: int = 10,
-    ):
+    ) -> None:
     """
-Extract the entities fron each article.
+Extract the entities from each article.
+
+    kg_path:
+optional - path to the TTL file for kglab to load/save
+
+    min_date:
+optional - minimum date to include in the results
+
+    kpa_file:
+optional - path to the CSV file for extracted phrases
+
+    max_phrase:
+optional - maximum number of extracted phrases to represent
     """
     trends = Trends(kg_path=kg_path)
 
@@ -341,32 +393,54 @@ Extract the entities fron each article.
     nlp = spacy.load("en_core_web_sm")
     nlp.add_pipe("textrank")
 
-    sparql = """
+    sparql = f"""
 SELECT ?article ?title ?abstract
-WHERE {
+WHERE {{
  ?article a bibo:Article .
  ?article dct:title ?title .
- ?article dct:abstract ?abstract
-}
+ ?article dct:abstract ?abstract .
+ ?article dct:Date ?date .
+ FILTER (?date > "{min_date}T00:00:00"^^xsd:dateTime)
+}}
     """
 
     # run the pipeline for each article
-    for node, title, abstract in trends.kg.query(sparql):
+    for node, title, abstract in tqdm(trends.kg.query(sparql), desc="Abstract query"):
         text = title.toPython() + ".  " + abstract.toPython()
         doc = nlp(text)
+        df_list = []
 
         for phrase in itertools.islice(doc._.phrases, max_phrase):
             entity_label = " ".join(phrase.text.replace("\n", " ").strip().split()).lower()
-            print(node, round(phrase.rank, 3), phrase.count, entity_label)
+            entity_id = text_to_id(entity_label)
+
+            df_list.append({
+                "url": str(node),
+                "rank": round(phrase.rank, 3),
+                "count": phrase.count,
+                "id": entity_id,
+                "label": entity_label,
+                })
+
+        # serialize extracted phrases to a CSV file
+        path = pathlib.Path(kpa_file)
+        df = pd.DataFrame(df_list)
+        df.to_csv(path, index=False)
 
 
 @APP.command()
 def cmd_analyze (
     kg_path: str = "arxiv.ttl",
     csv_file: str = "arxiv.csv",
-    ):
+    ) -> None:
     """
 Analyze the article trends.
+
+    kg_path:
+optional - path to the TTL file for kglab to load/save
+
+    csv_file:
+optional - path to the CSV file for trend data
     """
     trends = Trends(kg_path=kg_path)
 
@@ -386,10 +460,10 @@ WHERE {
             "date": date.toPython(),
             "counts": 0,
         }
-        for article, date, topic in trends.kg.query(sparql)
+        for article, date, topic in tqdm(trends.kg.query(sparql), desc="Article query")
     ]).groupby(["topic", "date"]).count()
 
-    # serialize to a CSV file
+    # serialize trend data to a CSV file
     path = pathlib.Path(csv_file)
     df.to_csv(path)
 
@@ -398,22 +472,40 @@ WHERE {
 def cmd_visualize (
     csv_file: str = "arxiv.csv",
     png_file: str = "arxiv.png",
-    ):
+    start_date: str = "2020-01-01",
+    ) -> None:
     """
 Visualize the article trends.
+
+    csv_file:
+optional - path to the CSV file fo trend data
+
+    png_file:
+optional - path to the PNG file for the rendered diagram
     """
     df = pd.read_csv(csv_file, parse_dates=True, index_col="date")
     df_list = []
 
-    for query in sorted(set(df["topic"])):
+    for query in tqdm(sorted(set(df["topic"])), desc="Topic"):
         df_sub = df[df["topic"] == query]
         df_samp = df_sub.resample("M").sum()
         df_list.append(df_samp.rename(columns={ "counts": query }))
 
     df_full = pd.concat(df_list, axis=1, join="inner").reindex(df_samp.index).fillna(0)
 
-    # delete the min value as an outlier
+    # drop the earliest row as an outlier
     df_full = df_full.iloc[1: , :]
+
+    # drop rows before the start date, if any
+    nix = set([
+        i
+        for i, row in enumerate(df_full.index)
+        if str(row) < start_date
+    ])
+
+    if len(nix) > 0:
+        cutoff = max(nix) + 1
+        df_full = df_full.iloc[cutoff: , :]
 
     # drop the last row – to let arXiv settle
     df_full.drop(df_full.tail(1).index, inplace=True)
