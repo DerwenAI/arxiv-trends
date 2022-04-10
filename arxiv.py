@@ -21,15 +21,17 @@ import urllib.request
 import xml.etree.ElementTree as et
 
 from icecream import ic  # type: ignore  # pylint: disable=E0401
+from tqdm import tqdm
 import dateutil.tz
-import kglab  # type: ignore  # pylint: disable=E0401
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore  # pylint: disable=E0401
 import pandas as pd  # type: ignore  # pylint: disable=E0401
-import pytextrank  # type: ignore  # pylint: disable=E0401
 import rdflib  # type: ignore  # pylint: disable=E0401
 import spacy
 import typer
+
+import pytextrank  # type: ignore  # pylint: disable=E0401
+import kglab  # type: ignore  # pylint: disable=E0401
 
 
 APP = typer.Typer()
@@ -304,7 +306,7 @@ optional - maximum items requested per page
             ic(page_items)
 
             # parse each entry
-            for entry in root.findall("atom:entry", self.NS):
+            for entry in tqdm(root.findall("atom:entry", self.NS), desc="Atom entry"):
                 node, date = self.parse_entry(entry)
                 yield date, node
 
@@ -354,10 +356,10 @@ optional - maximum items requested per API call
         page_items=page_items,
     )
 
-    for date, node in hit_iter:
+    for date, node in tqdm(hit_iter, desc="Hits"):
         trends.kg.add(node, trends.kg.get_ns("derw").fromQuery, trends.topics[query])
         # TODO: what if query new?
-        print(query, date, node)
+        #print(query, date, node)
 
     # persist the metadata
     trends.save_kg()
@@ -403,7 +405,7 @@ WHERE {{
     """
 
     # run the pipeline for each article
-    for node, title, abstract in trends.kg.query(sparql):
+    for node, title, abstract in tqdm(trends.kg.query(sparql), desc="Abstract query"):
         text = title.toPython() + ".  " + abstract.toPython()
         doc = nlp(text)
         df_list = []
@@ -458,7 +460,7 @@ WHERE {
             "date": date.toPython(),
             "counts": 0,
         }
-        for article, date, topic in trends.kg.query(sparql)
+        for article, date, topic in tqdm(trends.kg.query(sparql), desc="Article query")
     ]).groupby(["topic", "date"]).count()
 
     # serialize trend data to a CSV file
@@ -470,6 +472,7 @@ WHERE {
 def cmd_visualize (
     csv_file: str = "arxiv.csv",
     png_file: str = "arxiv.png",
+    start_date: str = "2020-01-01",
     ) -> None:
     """
 Visualize the article trends.
@@ -483,15 +486,26 @@ optional - path to the PNG file for the rendered diagram
     df = pd.read_csv(csv_file, parse_dates=True, index_col="date")
     df_list = []
 
-    for query in sorted(set(df["topic"])):
+    for query in tqdm(sorted(set(df["topic"])), desc="Topic"):
         df_sub = df[df["topic"] == query]
         df_samp = df_sub.resample("M").sum()
         df_list.append(df_samp.rename(columns={ "counts": query }))
 
     df_full = pd.concat(df_list, axis=1, join="inner").reindex(df_samp.index).fillna(0)
 
-    # delete the min value as an outlier
+    # drop the earliest row as an outlier
     df_full = df_full.iloc[1: , :]
+
+    # drop rows before the start date, if any
+    nix = set([
+        i
+        for i, row in enumerate(df_full.index)
+        if str(row) < start_date
+    ])
+
+    if len(nix) > 0:
+        cutoff = max(nix) + 1
+        df_full = df_full.iloc[cutoff: , :]
 
     # drop the last row – to let arXiv settle
     df_full.drop(df_full.tail(1).index, inplace=True)

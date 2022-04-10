@@ -1,4 +1,5 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
+set -eux
 
 LOOKBACK=`date -v-2w +%Y-%m-%d`
 
@@ -21,7 +22,7 @@ TTL_FILE=/opt/derwen/chwedl/trends/arxiv.ttl
 
 for QUERY in "${PHRASES[@]}"
 do
-    python arxiv.py cmd-query --min-date=$LOOKBACK --kg-path $TTL_FILE "$QUERY"
+    python3 arxiv.py cmd-query --min-date=$LOOKBACK --kg-path $TTL_FILE "$QUERY"
 done
 
 # analyze trends
@@ -29,12 +30,12 @@ done
 CSV_FILE=/opt/derwen/chwedl/trends/arxiv.csv
 PNG_FILE=/opt/derwen/chwedl/trends/arxiv.png
 
-python arxiv.py cmd-analyze --kg-path $TTL_FILE --csv-file $CSV_FILE
-python arxiv.py cmd-visualize --csv-file $CSV_FILE --png-file $PNG_FILE
+python3 arxiv.py cmd-analyze --kg-path $TTL_FILE --csv-file $CSV_FILE
+python3 arxiv.py cmd-visualize --csv-file $CSV_FILE --png-file $PNG_FILE
 
 # extract phrases
 
 TODAY=`date +%Y%m%d`
 KPA_FILE=/opt/derwen/chwedl/trends/phrases.$TODAY.csv
 
-python arxiv.py cmd-extract --min-date=$LOOKBACK --kg-path $TTL_FILE --kpa-file $KPA_FILE
+python3 arxiv.py cmd-extract --min-date=$LOOKBACK --kg-path $TTL_FILE --kpa-file $KPA_FILE
