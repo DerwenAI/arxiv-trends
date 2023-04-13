@@ -343,7 +343,26 @@ optional - minimum date to include in the results
     max_items:
 optional - maximum items requested per API call
     """
+    
+
+    
     trends = Trends(kg_path=kg_path)
+
+    if query not in trends.topics:
+        new_topic = f'''derw:topic_{query.replace(" ", "_")} a derw:Topic ;
+            skos:broader <https://derwen.ai/d/computer_science> ;
+            skos:closeMatch lcsh:sh2002004605,
+                <https://networkx.org/documentation/stable/reference/algorithms/index.html> ;
+            skos:definition ""@en ;
+            skos:prefLabel "{query}"@en .\n'''
+        
+        #append new topic to ttl file
+        with open(kg_path, "a") as f:
+            f.write(new_topic)
+            f.close()
+
+        #reload the ttl file
+        trends = Trends(kg_path=kg_path)
 
     # search parameters
     page_items = 100
@@ -358,8 +377,6 @@ optional - maximum items requested per API call
 
     for date, node in tqdm(hit_iter, desc="Hits"):
         trends.kg.add(node, trends.kg.get_ns("derw").fromQuery, trends.topics[query])
-        # TODO: what if query new?
-        #print(query, date, node)
 
     # persist the metadata
     trends.save_kg()
@@ -472,7 +489,7 @@ WHERE {
 def cmd_visualize (
     csv_file: str = "arxiv.csv",
     png_file: str = "arxiv.png",
-    start_date: str = "2020-01-01",
+    start_date: str = "2010-01-01",
     ) -> None:
     """
 Visualize the article trends.
